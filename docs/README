@@ -1,0 +1,64 @@
+dystill
+by Rob Peck <rob@robpeck.com>
+
+dystill is a sorting, filtering MySQL-based Mail Delivery Agent written in 
+Python. See INSTALL for installation instructions, and LICENSE for the code 
+license agreement.
+
+RULES EXPLAINED
+
+Once you have the software installed and working, the next step is to add some
+rules to get it to do what you want. Right now, there is no graphical front-end
+to the SQL database, but writing one or adding it to an existing mail package
+should be trivially easy.
+
+The filters Table:
+
+The main table that dystill uses is the filters table. This table consists of a 
+unique identifier (filter_id), a user_id field that links it back to whatever 
+your mail users table's unique ID is, a field, a value, and an integer that 
+determines whether or not a filter is active or not.
+
+So assuming you have the unique ID of the account you want to link your filters
+to, the fields you really need to worry about are the field and value fields.
+These represent a header, and a regular expression match against the value of 
+the header.
+
+For example:
+
+insert into filters (user_id, field, value) values (2, 'X-Spam-Flag', '.*YES');
+
+This will create a filter that matches on the spam flag. Using regular 
+expressions, you can create complex filters or very simple ones. It's up to you.
+If you filters with a user_id of 0, these are automatically applied to all 
+messages. This is useful for spam filtering.
+
+The actions Table:
+
+The accompanying filters_actions table describes the actions that are taken when
+a filter matches. This table consists of a unique ID (action_id), a filter_id 
+linking back to the filters table, an action string, and an argument string.
+
+The big two are the action and argument. Valid actions are:
+
+ * markasread - Marks the message as read.
+ * flag       - Flags a message.
+ * deletes    - Deletes a message. The message is still delivered, but is marked
+                for deletion.
+ * prependsub - Prepends text to the subject string. The argument shoud be the
+                string to prepend.
+ * header     - Adds a header to the message. The argument should be a key:value
+                pair.
+ * forward    - Automatically queues a forward message to a specified address.
+                The argument should be the address you want to forward it to. 
+ * block      - Silently blocks delivery. This will tell the MTA that the 
+                message was delivered, but will silently dispose of it.
+ * blocknote  - Blocks delivery, but informs the sending address that delivery
+                was blocked. Also called "ex-girlfriend logic."
+ * copyto     - Duplicates the message, and puts a copy in a different folder.
+                The argument should be the folder you want to move it to.
+ * to         - Moves the message to the specified folder. The argument should
+                be the address you want to move it to.
+ 
+By the time it reaches the end of the action chain, if the message hasn't been
+delivered, it is automatically added to the inbox as any normal email would be.
