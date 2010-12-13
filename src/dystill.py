@@ -205,10 +205,35 @@ def main():
         
         # Otherwise, regexp match on the header values
         if not headers == None:
+            if not rule["comparison"] == 4:
+                test = re.escape(rule["value"])
+            else:
+                test = rule["value"]
+            
             for header in headers:
-                match = re.compile(rule["value"])
-                if match.match(header):
-                    actions[rule["action"]] = rule["argument"]
+                if rule["comparison"] == 0: # Starts with
+                    match = re.compile("^" + test)
+                    if match.match(header):
+                        actions[rule["action"]] = rule["argument"]
+                
+                if rule["comparison"] == 1: # Ends with
+                    match = re.compile(".*" + test + "$")
+                    if match.match(header):
+                        actions[rule["action"]] = rule["argument"]
+                
+                if rule["comparison"] == 2: # Contains
+                    match = re.compile(".*" + test + ".*")
+                    if match.match(header):
+                        actions[rule["action"]] = rule["argument"]
+
+                if rule["comparison"] == 3: # Is
+                    if header == test:
+                        actions[rule["action"]] = rule["argument"]
+                
+                if rule["comparison"] == 4: # Regexp
+                    match = re.compile(test)
+                    if match.match(header):
+                        actions[rule["action"]] = rule["argument"]
     
     # Open the maildir for delivery
     inbox = mailbox.Maildir(maildir, factory=None)
