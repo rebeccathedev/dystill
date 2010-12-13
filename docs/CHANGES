@@ -1,0 +1,10 @@
+CHANGELOG
+
+v0.1
+- Initial release
+
+v0.1.1
+- Changed the way filter actions worked. Previously all comparisons were done by
+  regular expression. Now changes can be one of 5 ways (starts with, ends with,
+  contains, equals, and regular expression). Added a field to the database to 
+  store this.
