@@ -8,3 +8,10 @@ v0.1.1
   regular expression. Now changes can be one of 5 ways (starts with, ends with,
   contains, equals, and regular expression). Added a field to the database to 
   store this.
+  
+v0.1.2
+- BUGFIX: Now actually support subfolders in IMAP. Previous version contained a
+  bug that would cause a maildir to be created that wasn't accessable.
+  
+- FEATURE: Support added for delimiters in email addressed in situations whre 
+  the MTA doesn't handle parsing it for us (Postfix).
