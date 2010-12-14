@@ -43,7 +43,7 @@ import ConfigParser
 import MySQLdb
 import MySQLdb.cursors
 
-VERSION = "0.1"
+VERSION = "0.1.2"
 
 # Define a couple of useful exit codes
 EX_OK = 0
@@ -106,6 +106,24 @@ def main():
     except ConfigParser.NoOptionError, message:
         print "Could not read required options from the config file: " + message.__str__()
         sys.exit(EX_TEMPFAIL)
+        
+    # Try to find a delimiter if we have one.
+    delimiter = None
+    try:
+        delimiter = config.get("dystill", "delimiter")
+    except ConfigParser.NoOptionError, message:
+        pass
+    
+    # Assign this to a var for processing
+    to_address = args.d
+    
+    # Try to parse the user information
+    if not delimiter == None:
+        pattern = re.compile("(.*?)(" + delimiter + ".*)?@(.*)")
+        res = pattern.search(to_address)
+        
+        if not res.group(2) == None:
+            to_address = res.group(1) + "@" + res.group(3) 
     
     # If a file is specified, read that
     data = None
@@ -153,7 +171,7 @@ def main():
     try:
         cursor = db.cursor()
         cursor.execute("select %s as id, %s as email, %s as homedir, %s as maildir from %s where %s = '%s' limit 1" %
-                       (user_id_field, email_field, homedir_field, maildir_field, users_table, email_field, db.escape_string(args.d)))
+                       (user_id_field, email_field, homedir_field, maildir_field, users_table, email_field, db.escape_string(to_address)))
     except MySQLdb.ProgrammingError, (value, message):
         print "Internal error: " + message
         sys.exit(EX_TEMPFAIL)
@@ -165,7 +183,7 @@ def main():
     # Check to see if the user actually exists. We shouldn't even be here
     # if this is the case, but we check just to be sure.
     if user == None:
-        print "Could not find user " + args.d + " in users table."
+        print "Could not find user " + to_address + " in users table."
         db.close()
         sys.exit(EX_TEMPFAIL)
     
@@ -291,11 +309,12 @@ def main():
         
     # Copy to another folder
     if actions.__contains__("copyto"):
-        if not folders.__contains__(actions["to"]):
-            inbox.add_folder(actions["to"])
+        f = actions["to"].replace("/", ".")
+        if not folders.__contains__(f):
+            inbox.add_folder(f)
         
         copy_message = copy.deepcopy(message)
-        folder = inbox.get_folder(actions["to"])
+        folder = inbox.get_folder(f)
         folder.lock()
         folder.add(copy_message)
         folder.unlock()
@@ -303,11 +322,12 @@ def main():
     
     # Deliver to another box. We always do this last.
     if actions.__contains__("to"):
+        f = actions["to"].replace("/", ".")
         # Determine if the folder exists. Create it if it doesn't.
-        if not folders.__contains__(actions["to"]):
-            inbox.add_folder(actions["to"])
+        if not folders.__contains__(f):
+            inbox.add_folder(f)
             
-        folder = inbox.get_folder(actions["to"])
+        folder = inbox.get_folder(f)
         folder.lock()
         folder.add(message)
         folder.unlock()
