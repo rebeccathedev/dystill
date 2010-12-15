@@ -230,17 +230,17 @@ def main():
             
             for header in headers:
                 if rule["comparison"] == 0: # Starts with
-                    match = re.compile("^" + test)
+                    match = re.compile("^" + test, re.IGNORECASE)
                     if match.match(header):
                         actions[rule["action"]] = rule["argument"]
                 
                 if rule["comparison"] == 1: # Ends with
-                    match = re.compile(".*" + test + "$")
+                    match = re.compile(".*" + test + "$", re.IGNORECASE)
                     if match.match(header):
                         actions[rule["action"]] = rule["argument"]
                 
                 if rule["comparison"] == 2: # Contains
-                    match = re.compile(".*" + test + ".*")
+                    match = re.compile(".*" + test + ".*", re.IGNORECASE)
                     if match.match(header):
                         actions[rule["action"]] = rule["argument"]
 
@@ -249,7 +249,7 @@ def main():
                         actions[rule["action"]] = rule["argument"]
                 
                 if rule["comparison"] == 4: # Regexp
-                    match = re.compile(test)
+                    match = re.compile(test, re.IGNORECASE)
                     if match.match(header):
                         actions[rule["action"]] = rule["argument"]
     
