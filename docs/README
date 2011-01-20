@@ -16,8 +16,16 @@ The filters Table:
 
 The main table that dystill uses is the filters table. This table consists of a 
 unique identifier (filter_id), a user_id field that links it back to whatever 
-your mail users table's unique ID is, a field, a value, and an integer that 
-determines whether or not a filter is active or not.
+your mail users table's unique ID is, a field, a value, an integer that 
+determines whether or not a filter is active or not, and a comparison field that
+describes the type of comparison taking place.
+
+The comparison types are:
+ 0 = Starts With
+ 1 = Ends With
+ 2 = Contains
+ 3 = Is (an exact equals)
+ 4 = Regular Expression
 
 So assuming you have the unique ID of the account you want to link your filters
 to, the fields you really need to worry about are the field and value fields.
@@ -26,7 +34,8 @@ the header.
 
 For example:
 
-insert into filters (user_id, field, value) values (2, 'X-Spam-Flag', '.*YES');
+insert into filters set user_id=2, field='X-Spam-Flag', comparison=3, `value`=
+'YES', active=1;
 
 This will create a filter that matches on the spam flag. Using regular 
 expressions, you can create complex filters or very simple ones. It's up to you.
