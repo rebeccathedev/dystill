@@ -1,13 +1,13 @@
 CREATE TABLE `filters` (
   `filter_id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` int(11) NOT NULL,
+  `email` varchar(255) NOT NULL DEFAULT '',
   `field` varchar(50) NOT NULL,
   `comparison` int(1) NOT NULL DEFAULT '0',
   `value` varchar(255) NOT NULL,
   `active` int(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`filter_id`),
   KEY `user_id` (`user_id`)
-) ENGINE=InnoDB;
+);
 
 CREATE TABLE `filters_actions` (
   `filter_id` int(11) DEFAULT NULL,
@@ -15,4 +15,4 @@ CREATE TABLE `filters_actions` (
   `argument` varchar(255) NOT NULL,
   PRIMARY KEY (`action_id`),
   KEY `filter_id` (`filter_id`)
-) ENGINE=InnoDB;
+);

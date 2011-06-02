@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Copyright (c) 2010, Rob Peck <rob@robpeck.com>
+Copyright (c) 2010-2011, Rob Peck <rob-dystill@robpeck.com>
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,7 @@ import ConfigParser
 import MySQLdb
 import MySQLdb.cursors
 
-VERSION = "0.1.2"
+VERSION = "0.2"
 
 # Define a couple of useful exit codes
 EX_OK = 0
@@ -92,17 +92,9 @@ def main():
     config.read(config_file)
     
     # Read some database stuff from the config
-    users_table = None
-    user_id_field = None
-    email_field = None
-    homedir_field = None
-    maildir_field = None
+    maildir_path = None
     try:
-        users_table = config.get("database", "users_table")
-        user_id_field = config.get("database", "user_id_field")
-        email_field = config.get("database", "email_field")
-        homedir_field = config.get("database", "homedir_field")
-        maildir_field = config.get("database", "maildir_field")
+        maildir_path = config.get("dystill", "maildir_path")
     except ConfigParser.NoOptionError, message:
         print "Could not read required options from the config file: " + message.__str__()
         sys.exit(EX_TEMPFAIL)
@@ -123,7 +115,7 @@ def main():
         res = pattern.search(to_address)
         
         if not res.group(2) == None:
-            to_address = res.group(1) + "@" + res.group(3) 
+            to_address = res.group(1) + "@" + res.group(3)
     
     # If a file is specified, read that
     data = None
@@ -166,31 +158,14 @@ def main():
     except MySQLdb.OperationalError, (value, message):
         print "Could not connect to the database: " + message
         sys.exit(EX_TEMPFAIL)
-    
-    # Query for the user first, so we know where to deliver to.
-    try:
-        cursor = db.cursor()
-        cursor.execute("select %s as id, %s as email, %s as homedir, %s as maildir from %s where %s = '%s' limit 1" %
-                       (user_id_field, email_field, homedir_field, maildir_field, users_table, email_field, db.escape_string(to_address)))
-    except MySQLdb.ProgrammingError, (value, message):
-        print "Internal error: " + message
-        sys.exit(EX_TEMPFAIL)
         
-    # Pull out the user
-    user = cursor.fetchone()
-    cursor.close()
-    
-    # Check to see if the user actually exists. We shouldn't even be here
-    # if this is the case, but we check just to be sure.
-    if user == None:
-        print "Could not find user " + to_address + " in users table."
-        db.close()
-        sys.exit(EX_TEMPFAIL)
+    # Parse the maildir path, fill in the address
+    maildir = maildir_path.format(to_address = to_address)
     
     # Query for the rules
     try:
         cursor = db.cursor()
-        cursor.execute("select * from filters inner join filters_actions using (filter_id) where (user_id = %d or user_id = 0) and active = 1" % (user["id"],))
+        cursor.execute("select * from filters inner join filters_actions using (filter_id) where (email = '%s' or email = '') and active = 1" % (db.escape_string(to_address),))
     except MySQLdb.ProgrammingError, (value, message):
         print "Internal error: " + message
         sys.exit(EX_TEMPFAIL)
@@ -202,17 +177,14 @@ def main():
     # Close the DB to free up resources ASAP.
     db.close()
     
-    # Define maildir
-    maildir = user["homedir"] + "/" + user["maildir"]
-    
     # Check that the homedir path exists
-    if not os.path.isdir(user["homedir"]):
-        print "Home directory " + user["homedir"] + " is not found!"
+    if not os.path.isdir(maildir):
+        print "Mail directory " + maildir + " is not found!"
         sys.exit(EX_TEMPFAIL)
         
     # Check that the homedir path is writable
-    if not os.access(user["homedir"], os.W_OK):
-        print "Home directory " + user["homedir"] + " is not writable!"
+    if not os.access(maildir, os.W_OK):
+        print "Mail directory " + maildir + " is not writable!"
         sys.exit(EX_TEMPFAIL)
     
     #  Now we loop through the rules and build an actions table
