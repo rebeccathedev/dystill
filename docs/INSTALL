@@ -16,12 +16,7 @@ well if you have followed similar instructions* to the ones I did when setting
 up my email server.
 
 Next, be sure you have customized your /etc/dystill.conf file, and that all the 
-database settings are correct. You will need to tell dystill a little about what
-your users schema looks like. It needs to be able to access an integer ID, an 
-email address, a homedir location and a maildir location from your users 
-database. Again, if you followed similar instructions to the ones above (which I 
-believe are pretty standard when it comes to virtual mailhosting), you should be 
-fine.
+database settings are correct. 
 
 Next, edit your master.cf file and add the following:
 
