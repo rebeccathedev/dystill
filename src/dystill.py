@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Copyright (c) 2010-2011, Rob Peck <rob-dystill@robpeck.com>
+Copyright (c) 2010-2012, Rob Peck <rob-dystill@robpeck.com>
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,7 @@ import ConfigParser
 import MySQLdb
 import MySQLdb.cursors
 
-VERSION = "0.2"
+VERSION = "0.2.1"
 
 # Define a couple of useful exit codes
 EX_OK = 0
@@ -226,7 +226,15 @@ def main():
                         actions[rule["action"]] = rule["argument"]
     
     # Open the maildir for delivery
-    inbox = mailbox.Maildir(maildir, factory=None)
+    try:
+        inbox = mailbox.Maildir(maildir, None, config.get("dystill", "create_maildirs"))
+    except mailbox.Error, message:
+        print "Could not deliver the message to the specified mailbox."
+        sys.exit(EX_TEMPFAIL)
+    except mailbox.NoSuchMailboxError, message:
+        print "Could not deliver the message to the specified mailbox."
+        sys.exit(EX_TEMPFAIL)
+        
     folders = inbox.list_folders()
     
     # Bring the message in

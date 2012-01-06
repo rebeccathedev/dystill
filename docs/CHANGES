@@ -30,3 +30,9 @@ v0.2
     
 - BUGFIX: An issue where folder names with certain characters would cause 
   issues with mail delivery.
+  
+v0.2.1
+- FEATURE; New config variable, create_maildirs, that can create a maildir if 
+  one does not already exist.
+  
+- Better error checking.
