@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
-Copyright (c) 2010-2012, Rob Peck <rob-dystill@robpeck.com>
+Copyright (c) 2010-2022, Rob Peck <rob-dystill@robpeck.com>
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,15 +35,15 @@ import os
 import sys
 import re
 import argparse
-import email
+import email.parser
 import mailbox
 import smtplib
 import copy
-import ConfigParser
+import configparser
 import MySQLdb
 import MySQLdb.cursors
 
-VERSION = "0.2.1"
+VERSION = "0.3"
 
 # Define a couple of useful exit codes
 EX_OK = 0
@@ -67,7 +67,7 @@ def main():
     config_file = None
     if not args.c == None:
         if not os.path.isfile(args.c):
-            print "The specified config file was not found!"
+            print("The specified config file was not found!")
             sys.exit(EX_TEMPFAIL)
         else:
             config_file = args.c
@@ -84,26 +84,26 @@ def main():
                 
     # If we got this far without a file, throw TEMPFAIL and exit.
     if config_file == None:
-        print "Cound not find a configuration file!"
+        print("Cound not find a configuration file!")
         sys.exit(EX_TEMPFAIL)
     
     # Load the file up into the config parser.    
-    config = ConfigParser.RawConfigParser()
+    config = configparser.RawConfigParser()
     config.read(config_file)
     
     # Read some database stuff from the config
     maildir_path = None
     try:
         maildir_path = config.get("dystill", "maildir_path")
-    except ConfigParser.NoOptionError, message:
-        print "Could not read required options from the config file: " + message.__str__()
+    except configparser.NoOptionError as message:
+        print("Could not read required options from the config file: " + message.__str__())
         sys.exit(EX_TEMPFAIL)
         
     # Try to find a delimiter if we have one.
     delimiter = None
     try:
         delimiter = config.get("dystill", "delimiter")
-    except ConfigParser.NoOptionError, message:
+    except configparser.NoOptionError as message:
         pass
     
     # Assign this to a var for processing
@@ -130,15 +130,15 @@ def main():
     
     # If we got this far without data, throw TEMPFAIL and exit.
     if data == None or len(data) == 0:
-        print "Could not read email data!"
+        print("Could not read email data!")
         sys.exit(EX_TEMPFAIL)
         
     # Load up the email parser and try to parse the message
-    parser = email.Parser.Parser()
+    parser = email.parser.Parser()
     try:
         zemail = parser.parsestr(data, True)
     except email.errors.MessageParseError:
-        print "Could not parse email data!"
+        print("Could not parse email data!")
         sys.exit(EX_TEMPFAIL)
         
     # Add a header to the email message
@@ -152,11 +152,11 @@ def main():
                                 passwd=config.get("database", "password"),
                                 db=config.get("database", "database"),
                                 cursorclass=MySQLdb.cursors.DictCursor)
-    except ConfigParser.NoOptionError, message:
-        print "Could not read required options from the config file: " + message.__str__()
+    except configparser.NoOptionError as message:
+        print("Could not read required options from the config file: " + message.__str__())
         sys.exit(EX_TEMPFAIL)
-    except MySQLdb.OperationalError, (value, message):
-        print "Could not connect to the database: " + message
+    except MySQLdb.OperationalError as message:
+        print("Could not connect to the database: " + message.__str__())
         sys.exit(EX_TEMPFAIL)
         
     # Parse the maildir path, fill in the address
@@ -165,9 +165,9 @@ def main():
     # Query for the rules
     try:
         cursor = db.cursor()
-        cursor.execute("select * from filters inner join filters_actions using (filter_id) where (email = '%s' or email = '') and active = 1" % (db.escape_string(to_address),))
-    except MySQLdb.ProgrammingError, (value, message):
-        print "Internal error: " + message
+        cursor.execute("select * from filters inner join filters_actions using (filter_id) where (email = '%s' or email = '') and active = 1" % (db.escape_string(to_address).decode("UTF-8"),))
+    except MySQLdb.ProgrammingError as message:
+        print("Internal error: " + message.__str__())
         sys.exit(EX_TEMPFAIL)
         
     # Pull out the rules
@@ -179,12 +179,12 @@ def main():
     
     # Check that the homedir path exists
     if not os.path.isdir(maildir):
-        print "Mail directory " + maildir + " is not found!"
+        print("Mail directory " + maildir + " is not found!")
         sys.exit(EX_TEMPFAIL)
         
     # Check that the homedir path is writable
     if not os.access(maildir, os.W_OK):
-        print "Mail directory " + maildir + " is not writable!"
+        print("Mail directory " + maildir + " is not writable!")
         sys.exit(EX_TEMPFAIL)
     
     #  Now we loop through the rules and build an actions table
@@ -228,11 +228,11 @@ def main():
     # Open the maildir for delivery
     try:
         inbox = mailbox.Maildir(maildir, None, config.get("dystill", "create_maildirs"))
-    except mailbox.Error, message:
-        print "Could not deliver the message to the specified mailbox."
+    except mailbox.NoSuchMailboxError as message:
+        print("Could not deliver the message to the specified mailbox.")
         sys.exit(EX_TEMPFAIL)
-    except mailbox.NoSuchMailboxError, message:
-        print "Could not deliver the message to the specified mailbox."
+    except mailbox.Error as message:
+        print("Could not deliver the message to the specified mailbox.")
         sys.exit(EX_TEMPFAIL)
         
     folders = inbox.list_folders()
@@ -273,7 +273,7 @@ def main():
         fwd_message["to"] = actions["forward"]
         
         s = smtplib.SMTP("localhost")
-        s.sendmail(user["email"], actions["forward"], fwd_message.__str__())
+        s.sendmail(actions["email"], actions["forward"], fwd_message.__str__())
         s.quit()
         message.add_flag("P")
         
@@ -285,7 +285,7 @@ def main():
     if actions.__contains__("blocknote"):
         delivered = True
         exit = EX_NOPERM
-        print "User " + user["email"] + " does not wish to receive this email."
+        print("User " + actions["email"] + " does not wish to receive this email.")
         
     # Copy to another folder
     if actions.__contains__("copyto"):
