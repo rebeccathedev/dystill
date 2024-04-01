@@ -168,4 +168,4 @@ MIT
 
 ## Author
 
-Rob Peck
+Rebecca Peck
